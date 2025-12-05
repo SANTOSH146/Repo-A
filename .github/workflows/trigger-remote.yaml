@@ -12,5 +12,5 @@ jobs:
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.REPO_B_TOKEN }}" \
-            https://api.github.com/repos/ORG/REPO_B/dispatches \
+            https://api.github.com/repos/SANTOSH146/Repo-B/dispatches \
             -d '{"event_type": "run-from-repoA", "client_payload": {"env": "dev"}}'
