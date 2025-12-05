@@ -1,0 +1,53 @@
+name: Debug PAT for dispatch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check token owner (/user)
+        env:
+          TOKEN: ${{ secrets.REPO_B_TOKEN }}
+        run: |
+          echo "=== GET /user ==="
+          HTTP_CODE=$(curl -s -o /tmp/user.json -w "%{http_code}" -H "Authorization: Bearer $TOKEN" https://api.github.com/user)
+          echo "HTTP /user: $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            jq -r '.login, .id' /tmp/user.json || true
+          else
+            cat /tmp/user.json || true
+          fi
+
+      - name: Check repository visibility (/repos/OWNER/REPO)
+        env:
+          TOKEN: ${{ secrets.REPO_B_TOKEN }}
+          OWNER: SANTOSH146     # <-- replace if needed
+          REPO: Repo-B          # <-- replace if needed
+        run: |
+          echo "=== GET /repos/$OWNER/$REPO ==="
+          HTTP_CODE=$(curl -s -o /tmp/repo.json -w "%{http_code}" -H "Authorization: Bearer $TOKEN" https://api.github.com/repos/$OWNER/$REPO)
+          echo "HTTP /repos: $HTTP_CODE"
+          if [ "$HTTP_CODE" = "200" ]; then
+            jq -r '.full_name, .private' /tmp/repo.json || true
+          else
+            cat /tmp/repo.json || true
+          fi
+
+      - name: Try dispatch (attempt POST)
+        env:
+          TOKEN: ${{ secrets.REPO_B_TOKEN }}
+          OWNER: SANTOSH146
+          REPO: Repo-B
+        run: |
+          echo "=== POST /repos/$OWNER/$REPO/dispatches ==="
+          PAYLOAD='{"event_type":"run-from-repoA","client_payload":{"env":"dev"}}'
+          HTTP_CODE=$(curl -s -o /tmp/dispatch.json -w "%{http_code}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -X POST "https://api.github.com/repos/$OWNER/$REPO/dispatches" \
+            -d "$PAYLOAD")
+          echo "HTTP dispatch: $HTTP_CODE"
+          if [ -s /tmp/dispatch.json ]; then cat /tmp/dispatch.json; fi
